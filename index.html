@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Trading Hub PRO</title>
+<title>Trading Hub PRO Messenger</title>
 
 <style>
 body{
@@ -68,6 +68,39 @@ button{
   border-radius:10px;
   background:#fafafa;
 }
+
+/* MESSENGER FLOAT */
+.messenger-float{
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  width:60px;
+  height:60px;
+  background:#0084ff;
+  border-radius:50%;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  color:white;
+  font-size:26px;
+  cursor:pointer;
+  box-shadow:0 4px 10px rgba(0,0,0,0.3);
+}
+
+.badge{
+  position:absolute;
+  top:5px;
+  right:5px;
+  background:red;
+  color:white;
+  font-size:12px;
+  width:20px;
+  height:20px;
+  border-radius:50%;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
 </style>
 </head>
 
@@ -94,7 +127,7 @@ import {
   orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-/* 🔥 FIREBASE CONFIG */
+/* FIREBASE CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyAi6LMeK1MwXBBaI4xSvTAjrYn6P0YSTHM",
   authDomain: "trading-web-6d548.firebaseapp.com",
@@ -111,7 +144,7 @@ const provider = new GoogleAuthProvider();
 
 const root = document.getElementById("root");
 
-/* ================= LOGIN ================= */
+/* LOGIN */
 function loginPage(){
   root.innerHTML = `
     <div class="app">
@@ -127,23 +160,23 @@ window.login = function(){
   signInWithPopup(auth, provider);
 };
 
-/* ================= USER CHECK ================= */
+/* USER CHECK */
 async function checkUser(user){
 
-  const ref = doc(db, "users", user.uid);
+  const ref = doc(db,"users",user.uid);
   const snap = await getDoc(ref);
 
   if(!snap.exists()){
-    await setDoc(ref, {
-      username: user.displayName,
-      createdAt: Date.now()
+    await setDoc(ref,{
+      username:user.displayName,
+      createdAt:Date.now()
     });
   }
 
-  marketplace(snap.exists() ? snap.data().username : user.displayName, user);
+  marketplace(user,snap.exists()?snap.data().username:user.displayName);
 }
 
-/* ================= POST ITEM ================= */
+/* POST */
 window.addPost = async function(){
 
   const title = document.getElementById("title").value;
@@ -152,48 +185,46 @@ window.addPost = async function(){
 
   const user = auth.currentUser;
 
-  const userDoc = await getDoc(doc(db, "users", user.uid));
+  const userDoc = await getDoc(doc(db,"users",user.uid));
   const username = userDoc.data().username;
 
-  await addDoc(collection(db, "posts"), {
+  await addDoc(collection(db,"posts"),{
     title,
     price,
     desc,
     username,
-    uid: user.uid,
-    createdAt: Date.now()
+    uid:user.uid,
+    createdAt:Date.now()
   });
 };
 
-/* ================= DELETE POST ================= */
-window.deletePost = async function(postId, uid){
+/* DELETE */
+window.deletePost = async function(postId,uid){
 
-  const user = auth.currentUser;
-
-  if(user.uid !== uid){
-    alert("Hindi mo pwede delete post ng iba");
+  if(auth.currentUser.uid !== uid){
+    alert("Not allowed");
     return;
   }
 
-  await deleteDoc(doc(db, "posts", postId));
+  await deleteDoc(doc(db,"posts",postId));
 };
 
-/* ================= LOAD POSTS ================= */
+/* LOAD POSTS */
 function loadPosts(){
 
-  const q = query(collection(db, "posts"), orderBy("createdAt","desc"));
+  const q = query(collection(db,"posts"),orderBy("createdAt","desc"));
 
-  onSnapshot(q, (snap)=>{
+  onSnapshot(q,(snap)=>{
 
-    let html = "";
+    let html="";
 
     snap.forEach(d=>{
 
-      const p = d.data();
-      const id = d.id;
-      const isMe = auth.currentUser.uid === p.uid;
+      const p=d.data();
+      const id=d.id;
+      const me = auth.currentUser.uid === p.uid;
 
-      html += `
+      html+=`
         <div class="post">
           <h3>${p.title}</h3>
           <p>₱${p.price}</p>
@@ -203,33 +234,33 @@ function loadPosts(){
 
           <button onclick="openChat('${p.uid}','${p.username}')">Message</button>
 
-          ${isMe ? `<button class="danger" onclick="deletePost('${id}','${p.uid}')">Delete</button>` : ""}
+          ${me?`<button class="danger" onclick="deletePost('${id}','${p.uid}')">Delete</button>`:""}
         </div>
       `;
     });
 
-    document.getElementById("posts").innerHTML = html;
+    document.getElementById("posts").innerHTML=html;
   });
 }
 
-/* ================= CHAT ================= */
-window.openChat = function(sellerId, sellerName){
+/* CHAT */
+window.openChat = function(sellerId,sellerName){
 
   const buyerId = auth.currentUser.uid;
 
   const chatId =
     buyerId < sellerId
-      ? buyerId + "_" + sellerId
-      : sellerId + "_" + buyerId;
+      ? buyerId+"_"+sellerId
+      : sellerId+"_"+buyerId;
 
-  root.innerHTML = `
+  root.innerHTML=`
     <div class="app">
 
       <h3>💬 Chat with ${sellerName}</h3>
 
       <div id="chatBox" class="chatBox"></div>
 
-      <input id="msg" placeholder="message...">
+      <input id="msg">
       <button onclick="sendMsg('${chatId}')">Send</button>
 
       <button onclick="location.reload()">Back</button>
@@ -243,7 +274,7 @@ window.openChat = function(sellerId, sellerName){
 /* SEND MESSAGE */
 window.sendMsg = async function(chatId){
 
-  const msg = document.getElementById("msg").value;
+  const msg=document.getElementById("msg").value;
 
   if(!msg) return;
 
@@ -256,10 +287,10 @@ window.sendMsg = async function(chatId){
   document.getElementById("msg").value="";
 };
 
-/* LOAD MESSAGES */
+/* LOAD CHAT */
 function loadMessages(chatId){
 
-  const q = query(collection(db,"chats",chatId,"messages"),orderBy("createdAt"));
+  const q=query(collection(db,"chats",chatId,"messages"),orderBy("createdAt"));
 
   onSnapshot(q,(snap)=>{
 
@@ -268,11 +299,16 @@ function loadMessages(chatId){
     snap.forEach(d=>{
 
       const m=d.data();
-      const me=m.senderId===auth.currentUser.uid;
+      const me = m.senderId===auth.currentUser.uid;
 
       html+=`
         <div style="text-align:${me?'right':'left'};margin:5px;">
-          <span style="padding:8px;background:${me?'black':'#eee'};color:${me?'white':'black'};border-radius:10px;">
+          <span style="
+            background:${me?'black':'#eee'};
+            color:${me?'white':'black'};
+            padding:8px 12px;
+            border-radius:10px;
+          ">
             ${m.text}
           </span>
         </div>
@@ -281,10 +317,10 @@ function loadMessages(chatId){
 
     document.getElementById("chatBox").innerHTML=html;
   });
-};
+}
 
-/* ================= MARKETPLACE ================= */
-function marketplace(username,user){
+/* MARKETPLACE */
+function marketplace(user,username){
 
   root.innerHTML=`
     <div class="app">
@@ -306,10 +342,29 @@ function marketplace(username,user){
       </div>
 
     </div>
+
+    <!-- MESSENGER FLOAT -->
+    <div class="messenger-float" onclick="openInbox()">
+      💬
+      <div id="badge" class="badge" style="display:none;">0</div>
+    </div>
   `;
 
   loadPosts();
+  updateBadge();
 }
+
+/* BADGE (simple version) */
+function updateBadge(){
+  const badge=document.getElementById("badge");
+  badge.style.display="flex";
+  badge.innerText="1";
+}
+
+/* INBOX (simple placeholder) */
+window.openInbox=function(){
+  alert("Inbox feature next upgrade 🚀");
+};
 
 /* LOGOUT */
 window.logout=function(){

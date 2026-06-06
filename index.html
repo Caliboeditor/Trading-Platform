@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Trading Hub PRO - Marketplace</title>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background:#f4f4f4;
+}
+
+.app{
+  max-width:800px;
+  margin:auto;
+  padding:20px;
+}
+
+.card{
+  background:white;
+  padding:15px;
+  border-radius:12px;
+  box-shadow:0 2px 10px rgba(0,0,0,0.1);
+  margin-bottom:15px;
+}
+
+input, textarea{
+  width:100%;
+  padding:10px;
+  margin:5px 0;
+  border:1px solid #ddd;
+  border-radius:8px;
+}
+
+button{
+  width:100%;
+  padding:10px;
+  border:none;
+  border-radius:8px;
+  background:#111;
+  color:white;
+  cursor:pointer;
+}
+
+.post{
+  background:white;
+  padding:12px;
+  border-radius:10px;
+  margin:10px 0;
+  box-shadow:0 2px 5px rgba(0,0,0,0.1);
+}
+
+.small{
+  font-size:12px;
+  color:gray;
+}
+</style>
+</head>
+
+<body>
+
+<div id="root"></div>
+
+<script type="module">
+
+/* FIREBASE */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } 
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  setDoc,
+  collection,
+  addDoc,
+  onSnapshot,
+  query,
+  orderBy
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* CONFIG */
+const firebaseConfig = {
+  apiKey: "AIzaSyAi6LMeK1MwXBBaI4xSvTAjrYn6P0YSTHM",
+  authDomain: "trading-web-6d548.firebaseapp.com",
+  projectId: "trading-web-6d548",
+  storageBucket: "trading-web-6d548.firebasestorage.app",
+  messagingSenderId: "465015762771",
+  appId: "1:465015762771:web:394098ccad3f3ef2c53ba6"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
+
+const root = document.getElementById("root");
+
+/* LOGIN */
+function loginPage(){
+  root.innerHTML = `
+    <div class="app">
+      <div class="card">
+        <h2>🛒 Trading Hub</h2>
+        <button onclick="login()">Login with Google</button>
+      </div>
+    </div>
+  `;
+}
+
+window.login = function(){
+  signInWithPopup(auth, provider);
+}
+
+/* CHECK USER */
+async function checkUser(user){
+
+  const ref = doc(db, "users", user.uid);
+  const snap = await getDoc(ref);
+
+  if(!snap.exists() || !snap.data().username){
+    usernamePage(user);
+  } else {
+    marketplacePage(snap.data().username, user);
+  }
+}
+
+/* USERNAME */
+function usernamePage(user){
+
+  root.innerHTML = `
+    <div class="app">
+      <div class="card">
+        <h3>Choose Username</h3>
+        <input id="username" placeholder="Enter username">
+        <button onclick="saveUsername('${user.uid}')">Continue</button>
+      </div>
+    </div>
+  `;
+}
+
+window.saveUsername = async function(uid){
+
+  const username = document.getElementById("username").value;
+
+  if(!username) return alert("Enter username");
+
+  await setDoc(doc(db, "users", uid), {
+    username,
+    createdAt: Date.now()
+  });
+
+  const user = auth.currentUser;
+  marketplacePage(username, user);
+}
+
+/* POST ITEM */
+window.addPost = async function(){
+
+  const title = document.getElementById("title").value;
+  const price = document.getElementById("price").value;
+  const desc = document.getElementById("desc").value;
+
+  const user = auth.currentUser;
+
+  if(!title || !price) return alert("Complete fields");
+
+  const userDoc = await getDoc(doc(db, "users", user.uid));
+  const username = userDoc.data().username;
+
+  await addDoc(collection(db, "posts"), {
+    title,
+    price,
+    desc,
+    username,
+    uid: user.uid,
+    createdAt: Date.now()
+  });
+
+  document.getElementById("title").value = "";
+  document.getElementById("price").value = "";
+  document.getElementById("desc").value = "";
+}
+
+/* LOAD POSTS */
+function loadPosts(){
+
+  const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+
+  onSnapshot(q, (snapshot) => {
+
+    let html = "";
+
+    snapshot.forEach(doc => {
+      const p = doc.data();
+
+      html += `
+        <div class="post">
+          <h3>${p.title}</h3>
+          <p>₱${p.price}</p>
+          <p>${p.desc}</p>
+          <div class="small">Seller: ${p.username}</div>
+        </div>
+      `;
+    });
+
+    document.getElementById("posts").innerHTML = html;
+  });
+}
+
+/* MARKETPLACE */
+function marketplacePage(username, user){
+
+  root.innerHTML = `
+    <div class="app">
+
+      <div class="card">
+        <h2>🛒 Welcome ${username}</h2>
+
+        <input id="title" placeholder="Item name">
+        <input id="price" placeholder="Price">
+        <textarea id="desc" placeholder="Description"></textarea>
+
+        <button onclick="addPost()">Post Item</button>
+      </div>
+
+      <div id="posts"></div>
+
+      <div class="card">
+        <button onclick="logout()">Logout</button>
+      </div>
+
+    </div>
+  `;
+
+  loadPosts();
+}
+
+/* LOGOUT */
+window.logout = function(){
+  auth.signOut();
+}
+
+/* AUTH STATE */
+onAuthStateChanged(auth, (user) => {
+  if(user){
+    checkUser(user);
+  } else {
+    loginPage();
+  }
+});
+
+loginPage();
+
+</script>
+
+</body>
+</html>

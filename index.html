@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Trading Hub PRO - Marketplace</title>
+<title>Trading Hub PRO</title>
 
 <style>
 body{
@@ -34,13 +34,17 @@ input, textarea{
 }
 
 button{
-  width:100%;
-  padding:10px;
+  padding:8px;
   border:none;
   border-radius:8px;
+  cursor:pointer;
   background:#111;
   color:white;
-  cursor:pointer;
+  margin-top:5px;
+}
+
+.danger{
+  background:red;
 }
 
 .post{
@@ -55,6 +59,15 @@ button{
   font-size:12px;
   color:gray;
 }
+
+.chatBox{
+  height:350px;
+  overflow:auto;
+  border:1px solid #ddd;
+  padding:10px;
+  border-radius:10px;
+  background:#fafafa;
+}
 </style>
 </head>
 
@@ -64,7 +77,6 @@ button{
 
 <script type="module">
 
-/* FIREBASE */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } 
 from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -76,12 +88,13 @@ import {
   setDoc,
   collection,
   addDoc,
+  deleteDoc,
   onSnapshot,
   query,
   orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-/* CONFIG */
+/* 🔥 FIREBASE CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyAi6LMeK1MwXBBaI4xSvTAjrYn6P0YSTHM",
   authDomain: "trading-web-6d548.firebaseapp.com",
@@ -98,12 +111,12 @@ const provider = new GoogleAuthProvider();
 
 const root = document.getElementById("root");
 
-/* LOGIN */
+/* ================= LOGIN ================= */
 function loginPage(){
   root.innerHTML = `
     <div class="app">
       <div class="card">
-        <h2>🛒 Trading Hub</h2>
+        <h2>🛒 Trading Hub PRO</h2>
         <button onclick="login()">Login with Google</button>
       </div>
     </div>
@@ -112,51 +125,25 @@ function loginPage(){
 
 window.login = function(){
   signInWithPopup(auth, provider);
-}
+};
 
-/* CHECK USER */
+/* ================= USER CHECK ================= */
 async function checkUser(user){
 
   const ref = doc(db, "users", user.uid);
   const snap = await getDoc(ref);
 
-  if(!snap.exists() || !snap.data().username){
-    usernamePage(user);
-  } else {
-    marketplacePage(snap.data().username, user);
+  if(!snap.exists()){
+    await setDoc(ref, {
+      username: user.displayName,
+      createdAt: Date.now()
+    });
   }
+
+  marketplace(snap.exists() ? snap.data().username : user.displayName, user);
 }
 
-/* USERNAME */
-function usernamePage(user){
-
-  root.innerHTML = `
-    <div class="app">
-      <div class="card">
-        <h3>Choose Username</h3>
-        <input id="username" placeholder="Enter username">
-        <button onclick="saveUsername('${user.uid}')">Continue</button>
-      </div>
-    </div>
-  `;
-}
-
-window.saveUsername = async function(uid){
-
-  const username = document.getElementById("username").value;
-
-  if(!username) return alert("Enter username");
-
-  await setDoc(doc(db, "users", uid), {
-    username,
-    createdAt: Date.now()
-  });
-
-  const user = auth.currentUser;
-  marketplacePage(username, user);
-}
-
-/* POST ITEM */
+/* ================= POST ITEM ================= */
 window.addPost = async function(){
 
   const title = document.getElementById("title").value;
@@ -164,8 +151,6 @@ window.addPost = async function(){
   const desc = document.getElementById("desc").value;
 
   const user = auth.currentUser;
-
-  if(!title || !price) return alert("Complete fields");
 
   const userDoc = await getDoc(doc(db, "users", user.uid));
   const username = userDoc.data().username;
@@ -178,30 +163,47 @@ window.addPost = async function(){
     uid: user.uid,
     createdAt: Date.now()
   });
+};
 
-  document.getElementById("title").value = "";
-  document.getElementById("price").value = "";
-  document.getElementById("desc").value = "";
-}
+/* ================= DELETE POST ================= */
+window.deletePost = async function(postId, uid){
 
-/* LOAD POSTS */
+  const user = auth.currentUser;
+
+  if(user.uid !== uid){
+    alert("Hindi mo pwede delete post ng iba");
+    return;
+  }
+
+  await deleteDoc(doc(db, "posts", postId));
+};
+
+/* ================= LOAD POSTS ================= */
 function loadPosts(){
 
-  const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+  const q = query(collection(db, "posts"), orderBy("createdAt","desc"));
 
-  onSnapshot(q, (snapshot) => {
+  onSnapshot(q, (snap)=>{
 
     let html = "";
 
-    snapshot.forEach(doc => {
-      const p = doc.data();
+    snap.forEach(d=>{
+
+      const p = d.data();
+      const id = d.id;
+      const isMe = auth.currentUser.uid === p.uid;
 
       html += `
         <div class="post">
           <h3>${p.title}</h3>
           <p>₱${p.price}</p>
           <p>${p.desc}</p>
+
           <div class="small">Seller: ${p.username}</div>
+
+          <button onclick="openChat('${p.uid}','${p.username}')">Message</button>
+
+          ${isMe ? `<button class="danger" onclick="deletePost('${id}','${p.uid}')">Delete</button>` : ""}
         </div>
       `;
     });
@@ -210,20 +212,91 @@ function loadPosts(){
   });
 }
 
-/* MARKETPLACE */
-function marketplacePage(username, user){
+/* ================= CHAT ================= */
+window.openChat = function(sellerId, sellerName){
+
+  const buyerId = auth.currentUser.uid;
+
+  const chatId =
+    buyerId < sellerId
+      ? buyerId + "_" + sellerId
+      : sellerId + "_" + buyerId;
 
   root.innerHTML = `
     <div class="app">
 
-      <div class="card">
-        <h2>🛒 Welcome ${username}</h2>
+      <h3>💬 Chat with ${sellerName}</h3>
 
-        <input id="title" placeholder="Item name">
+      <div id="chatBox" class="chatBox"></div>
+
+      <input id="msg" placeholder="message...">
+      <button onclick="sendMsg('${chatId}')">Send</button>
+
+      <button onclick="location.reload()">Back</button>
+
+    </div>
+  `;
+
+  loadMessages(chatId);
+};
+
+/* SEND MESSAGE */
+window.sendMsg = async function(chatId){
+
+  const msg = document.getElementById("msg").value;
+
+  if(!msg) return;
+
+  await addDoc(collection(db,"chats",chatId,"messages"),{
+    text:msg,
+    senderId:auth.currentUser.uid,
+    createdAt:Date.now()
+  });
+
+  document.getElementById("msg").value="";
+};
+
+/* LOAD MESSAGES */
+function loadMessages(chatId){
+
+  const q = query(collection(db,"chats",chatId,"messages"),orderBy("createdAt"));
+
+  onSnapshot(q,(snap)=>{
+
+    let html="";
+
+    snap.forEach(d=>{
+
+      const m=d.data();
+      const me=m.senderId===auth.currentUser.uid;
+
+      html+=`
+        <div style="text-align:${me?'right':'left'};margin:5px;">
+          <span style="padding:8px;background:${me?'black':'#eee'};color:${me?'white':'black'};border-radius:10px;">
+            ${m.text}
+          </span>
+        </div>
+      `;
+    });
+
+    document.getElementById("chatBox").innerHTML=html;
+  });
+};
+
+/* ================= MARKETPLACE ================= */
+function marketplace(username,user){
+
+  root.innerHTML=`
+    <div class="app">
+
+      <div class="card">
+        <h2>Welcome ${username}</h2>
+
+        <input id="title" placeholder="Item">
         <input id="price" placeholder="Price">
         <textarea id="desc" placeholder="Description"></textarea>
 
-        <button onclick="addPost()">Post Item</button>
+        <button onclick="addPost()">Post</button>
       </div>
 
       <div id="posts"></div>
@@ -239,17 +312,14 @@ function marketplacePage(username, user){
 }
 
 /* LOGOUT */
-window.logout = function(){
+window.logout=function(){
   auth.signOut();
-}
+};
 
-/* AUTH STATE */
-onAuthStateChanged(auth, (user) => {
-  if(user){
-    checkUser(user);
-  } else {
-    loginPage();
-  }
+/* AUTH */
+onAuthStateChanged(auth,(user)=>{
+  if(user) checkUser(user);
+  else loginPage();
 });
 
 loginPage();

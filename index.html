@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trading Hub FIXED PRO</title>
+<title>STEP 7 INBOX UPGRADE</title>
 
 <style>
 body{margin:0;font-family:Arial;background:#eef0f4;}
@@ -12,11 +12,8 @@ body{margin:0;font-family:Arial;background:#eef0f4;}
 input,textarea{width:100%;padding:10px;margin-top:5px;border-radius:8px;border:1px solid #ddd;}
 button{width:100%;padding:10px;margin-top:8px;background:#111;color:white;border:none;border-radius:8px;}
 
-/* POSTS */
 .post{background:white;padding:12px;border-radius:10px;margin:10px 0;}
-img{max-width:100%;border-radius:10px;margin-top:5px;}
 
-/* CHAT */
 .chatBox{height:60vh;overflow:auto;background:#f7f7f7;padding:10px;border-radius:10px;}
 
 .msgRow{display:flex;margin:6px 0;}
@@ -34,7 +31,31 @@ word-wrap:break-word;
 .mine{background:black;color:white;}
 .theirs{background:#ddd;}
 
-/* FLOAT */
+/* INBOX UI */
+.inboxItem{
+background:white;
+padding:12px;
+border-radius:10px;
+margin-bottom:10px;
+cursor:pointer;
+display:flex;
+justify-content:space-between;
+align-items:center;
+box-shadow:0 2px 6px rgba(0,0,0,0.08);
+}
+
+.badge{
+background:red;
+color:white;
+width:20px;
+height:20px;
+border-radius:50%;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:12px;
+}
+
 .messenger{
 position:fixed;
 bottom:20px;
@@ -61,11 +82,20 @@ cursor:pointer;
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, collection, addDoc, deleteDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import {
+getFirestore,
+doc,
+getDoc,
+setDoc,
+collection,
+addDoc,
+onSnapshot,
+query,
+orderBy
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 /* FIREBASE */
-const firebaseConfig = {
+const firebaseConfig={
 apiKey:"AIzaSyAi6LMeK1MwXBBaI4xSvTAjrYn6P0YSTHM",
 authDomain:"trading-web-6d548.firebaseapp.com",
 projectId:"trading-web-6d548",
@@ -77,36 +107,24 @@ appId:"1:465015762771:web:394098ccad3f3ef2c53ba6"
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
 const db=getFirestore(app);
-const storage=getStorage(app);
 
 const root=document.getElementById("root");
-
-/* ================= IMAGE UPLOAD FIX ================= */
-async function uploadImage(file,type){
-const path = type==="post"
-? "posts/"+Date.now()
-: "chats/"+Date.now();
-
-const storageRef=ref(storage,path);
-await uploadBytes(storageRef,file);
-return await getDownloadURL(storageRef);
-}
 
 /* ================= LOGIN ================= */
 function loginPage(){
 root.innerHTML=`
 <div class="main">
 <div class="card">
-<h2>Trading Hub FIXED</h2>
-<button onclick="login()">Login Google</button>
+<h2>STEP 7 INBOX SYSTEM</h2>
+<button onclick="login()">Login</button>
 </div>
 </div>`;
 }
 
 window.login=()=>signInWithPopup(auth,new GoogleAuthProvider());
 
-/* ================= USER ================= */
-async function checkUser(user){
+/* ================= USERS ================= */
+async function ensureUser(user){
 const ref=doc(db,"users",user.uid);
 const snap=await getDoc(ref);
 
@@ -120,77 +138,33 @@ createdAt:Date.now()
 home();
 }
 
-/* ================= DELETE POST (RESTORED) ================= */
-window.deletePost=async function(postId,uid){
+/* ================= MARKETPLACE DEMO ================= */
+function home(){
 
-if(auth.currentUser.uid!==uid){
-alert("Not allowed");
-return;
+root.innerHTML=`
+<div class="main">
+
+<div class="card">
+<h3>Marketplace</h3>
+<p>Click users to chat demo</p>
+
+<button onclick="openChat('userA')">Chat User A</button>
+<button onclick="openChat('userB')">Chat User B</button>
+</div>
+
+</div>
+
+<div class="messenger" onclick="openInbox()">
+💬
+</div>
+`;
 }
 
-await deleteDoc(doc(db,"posts",postId));
-};
-
-/* ================= ADD POST ================= */
-window.addPost=async function(){
-
-const title=document.getElementById("title").value;
-const price=document.getElementById("price").value;
-const desc=document.getElementById("desc").value;
-const file=document.getElementById("img").files[0];
-
-let img="";
-
-if(file){
-img=await uploadImage(file,"post");
-}
-
-await addDoc(collection(db,"posts"),{
-title,price,desc,img,
-uid:auth.currentUser.uid,
-createdAt:Date.now()
-});
-};
-
-/* ================= LOAD POSTS ================= */
-function loadPosts(){
-
-const q=query(collection(db,"posts"),orderBy("createdAt","desc"));
-
-onSnapshot(q,(snap)=>{
-
-let html="";
-
-snap.forEach(d=>{
-const p=d.data();
-const id=d.id;
-const me=auth.currentUser.uid===p.uid;
-
-html+=`
-<div class="post">
-<h3>${p.title}</h3>
-<p>₱${p.price}</p>
-<p>${p.desc}</p>
-
-${p.img?`<img src="${p.img}">`:""}
-
-<button onclick="openChat('${p.uid}')">Message</button>
-
-${me?`<button style="background:red" onclick="deletePost('${id}','${p.uid}')">Delete</button>`:""}
-</div>`;
-});
-
-document.getElementById("posts").innerHTML=html;
-});
-}
-
-/* ================= CHAT ================= */
+/* ================= CHAT SYSTEM ================= */
 window.openChat=function(uid){
 
-const chatId =
-auth.currentUser.uid<uid
-? auth.currentUser.uid+"_"+uid
-: uid+"_"+auth.currentUser.uid;
+const me=auth.currentUser.uid;
+const chatId = me<uid ? me+"_"+uid : uid+"_"+me;
 
 root.innerHTML=`
 <div class="main">
@@ -200,9 +174,8 @@ root.innerHTML=`
 <div id="chatBox" class="chatBox"></div>
 
 <input id="msg">
-<input type="file" id="chatImg">
-
 <button onclick="send('${chatId}')">Send</button>
+
 <button onclick="home()">Back</button>
 
 </div>`;
@@ -210,27 +183,19 @@ root.innerHTML=`
 loadChat(chatId);
 };
 
-/* ================= SEND MESSAGE ================= */
+/* SEND */
 window.send=async function(chatId){
 
 const msg=document.getElementById("msg").value;
-const file=document.getElementById("chatImg").files[0];
-
-let img="";
-
-if(file){
-img=await uploadImage(file,"chat");
-}
 
 await addDoc(collection(db,"chats",chatId,"messages"),{
 text:msg,
-img,
 sender:auth.currentUser.uid,
 createdAt:Date.now()
 });
 };
 
-/* ================= LOAD CHAT ================= */
+/* LOAD CHAT */
 function loadChat(chatId){
 
 const q=query(collection(db,"chats",chatId,"messages"),orderBy("createdAt"));
@@ -246,8 +211,7 @@ const me=m.sender===auth.currentUser.uid;
 html+=`
 <div class="msgRow ${me?'me':'other'}">
 <div class="bubble ${me?'mine':'theirs'}">
-${m.text||""}
-${m.img?`<img src="${m.img}">`:""}
+${m.text}
 </div>
 </div>`;
 });
@@ -256,36 +220,70 @@ document.getElementById("chatBox").innerHTML=html;
 });
 }
 
-/* ================= HOME ================= */
-function home(){
+/* ================= INBOX CORE (STEP 7 MAIN FEATURE) ================= */
+window.openInbox=function(){
+
+const me=auth.currentUser.uid;
 
 root.innerHTML=`
 <div class="main">
-
-<div class="card">
-<h3>Create Post</h3>
-<input id="title" placeholder="title">
-<input id="price" placeholder="price">
-<textarea id="desc" placeholder="description"></textarea>
-<input type="file" id="img">
-<button onclick="addPost()">Post</button>
-</div>
-
-<div id="posts"></div>
-
-</div>
-
-<div class="messenger" onclick="alert('Inbox next upgrade 🔥')">
-💬
+<h2>💬 Inbox</h2>
+<div id="inboxList"></div>
+<button onclick="home()">Back</button>
 </div>
 `;
 
-loadPosts();
+loadInbox();
+};
+
+/* ================= LOAD INBOX (REAL SYSTEM) ================= */
+function loadInbox(){
+
+const me=auth.currentUser.uid;
+
+const q=query(collection(db,"chats"));
+
+onSnapshot(q,(snap)=>{
+
+let html="";
+
+snap.forEach(d=>{
+
+const chatId=d.id;
+
+if(!chatId.includes(me)) return;
+
+const other=chatId.replace(me,"").replace("_","");
+
+/* last message */
+const msgRef=collection(db,"chats",chatId,"messages");
+
+onSnapshot(query(msgRef,orderBy("createdAt")), (msgs)=>{
+
+let last="";
+msgs.forEach(m=> last=m.data().text);
+
+html+=`
+<div class="inboxItem" onclick="openChat('${other}')">
+<div>
+<b>${other}</b><br>
+<small>${last}</small>
+</div>
+
+<div class="badge">1</div>
+</div>
+`;
+
+document.getElementById("inboxList").innerHTML=html;
+});
+});
+
+});
 }
 
-/* ================= AUTH ================= */
+/* AUTH */
 onAuthStateChanged(auth,(user)=>{
-if(user) checkUser(user);
+if(user) ensureUser(user);
 else loginPage();
 });
 

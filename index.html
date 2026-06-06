@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Trading Hub PRO</title>
+<title>Trading Hub PRO MAX</title>
 
 <style>
 
-/* ================= BASE ================= */
+/* RESET */
 *{
   box-sizing:border-box;
   margin:0;
@@ -17,97 +17,125 @@
 }
 
 body{
-  background:#f4f4f4;
+  background:#eef0f4;
+  color:#111;
 }
 
-/* ================= LAYOUT ================= */
-.container{
-  display:flex;
-  height:100vh;
-}
-
-/* LEFT SIDE (desktop chat list style optional) */
-.sidebar{
-  width:280px;
-  background:white;
-  border-right:1px solid #ddd;
-  padding:10px;
-  display:none;
-}
-
-/* MAIN */
+/* APP */
 .main{
-  flex:1;
-  overflow:auto;
+  max-width:900px;
+  margin:auto;
   padding:12px;
 }
 
-/* ================= CARDS ================= */
+/* CARD */
 .card{
   background:white;
-  padding:12px;
+  padding:14px;
   border-radius:12px;
-  box-shadow:0 2px 8px rgba(0,0,0,0.1);
-  margin-bottom:10px;
+  box-shadow:0 2px 10px rgba(0,0,0,0.08);
+  margin-bottom:12px;
 }
 
-/* ================= INPUT ================= */
+/* INPUT */
 input,textarea{
   width:100%;
-  padding:10px;
-  margin-top:6px;
+  padding:12px;
+  margin-top:8px;
   border:1px solid #ddd;
-  border-radius:8px;
-  font-size:16px;
+  border-radius:10px;
+  font-size:15px;
+  outline:none;
 }
 
-/* ================= BUTTON ================= */
+/* BUTTON */
 button{
   width:100%;
-  padding:10px;
-  margin-top:8px;
+  padding:12px;
+  margin-top:10px;
   border:none;
-  border-radius:8px;
+  border-radius:10px;
   background:#111;
   color:white;
-  font-size:16px;
+  font-size:15px;
   cursor:pointer;
 }
 
-/* ================= POSTS ================= */
+/* POSTS */
 .post{
   background:white;
-  padding:12px;
+  padding:14px;
   border-radius:12px;
-  margin-bottom:10px;
+  margin-bottom:12px;
   box-shadow:0 2px 6px rgba(0,0,0,0.08);
 }
 
-/* ================= CHAT ================= */
-.chatBox{
-  height:60vh;
-  overflow:auto;
-  background:#fafafa;
-  border:1px solid #ddd;
-  padding:10px;
-  border-radius:10px;
+.small{
+  font-size:12px;
+  color:gray;
 }
 
-/* ================= MESSENGER FLOAT ================= */
+/* CHAT BOX */
+.chatBox{
+  height:65vh;
+  overflow:auto;
+  background:#f7f7f7;
+  border:1px solid #ddd;
+  padding:12px;
+  border-radius:12px;
+}
+
+/* CHAT BUBBLE FIX (IMPORTANT FIX MO) */
+.msgRow{
+  display:flex;
+  margin:6px 0;
+}
+
+.msgMe{
+  justify-content:flex-end;
+}
+
+.msgOther{
+  justify-content:flex-start;
+}
+
+.bubble{
+  max-width:70%;
+  padding:10px 12px;
+  border-radius:14px;
+  word-wrap:break-word;
+  white-space:pre-wrap; /* 🔥 FIX TEXT OVERLAP */
+  line-height:1.4;
+  font-size:14px;
+}
+
+.me{
+  background:#111;
+  color:white;
+  border-bottom-right-radius:4px;
+}
+
+.other{
+  background:#e4e4e4;
+  color:black;
+  border-bottom-left-radius:4px;
+}
+
+/* MESSENGER FLOAT */
 .messenger-float{
   position:fixed;
-  bottom:20px;
-  right:20px;
+  bottom:18px;
+  right:18px;
   width:60px;
   height:60px;
   border-radius:50%;
   background:#0084ff;
-  color:white;
   display:flex;
-  justify-content:center;
   align-items:center;
+  justify-content:center;
+  color:white;
   font-size:26px;
-  box-shadow:0 4px 10px rgba(0,0,0,0.3);
+  box-shadow:0 5px 12px rgba(0,0,0,0.3);
   z-index:9999;
 }
 
@@ -115,54 +143,34 @@ button{
   position:absolute;
   top:5px;
   right:5px;
-  background:red;
-  color:white;
   width:20px;
   height:20px;
-  border-radius:50%;
+  background:red;
+  color:white;
   font-size:12px;
+  border-radius:50%;
   display:flex;
-  justify-content:center;
   align-items:center;
+  justify-content:center;
 }
 
-/* ================= DESKTOP MODE ================= */
-@media (min-width:900px){
-
-  .sidebar{
-    display:block;
-  }
-
+/* MOBILE FIX */
+@media(max-width:600px){
   .main{
-    padding:20px;
+    padding:10px;
+  }
+
+  .bubble{
+    max-width:80%;
+    font-size:13px;
+  }
+
+  input,textarea,button{
+    font-size:14px;
   }
 
   .chatBox{
-    height:70vh;
-  }
-}
-
-/* ================= MOBILE MODE ================= */
-@media (max-width:600px){
-
-  .container{
-    flex-direction:column;
-  }
-
-  .sidebar{
-    display:none;
-  }
-
-  .chatBox{
-    height:65vh;
-  }
-
-  button{
-    font-size:15px;
-  }
-
-  input,textarea{
-    font-size:15px;
+    height:60vh;
   }
 }
 
@@ -175,7 +183,7 @@ button{
 
 <script type="module">
 
-/* ================= FIREBASE ================= */
+/* FIREBASE */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } 
 from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -210,12 +218,12 @@ const provider = new GoogleAuthProvider();
 
 const root = document.getElementById("root");
 
-/* ================= LOGIN ================= */
+/* LOGIN */
 function loginPage(){
   root.innerHTML=`
     <div class="main">
       <div class="card">
-        <h2>🛒 Trading Hub PRO</h2>
+        <h2>🛒 Trading Hub PRO MAX</h2>
         <button onclick="login()">Login with Google</button>
       </div>
     </div>
@@ -226,9 +234,8 @@ window.login=function(){
   signInWithPopup(auth,provider);
 };
 
-/* ================= USER ================= */
+/* USER */
 async function checkUser(user){
-
   const ref=doc(db,"users",user.uid);
   const snap=await getDoc(ref);
 
@@ -239,10 +246,10 @@ async function checkUser(user){
     });
   }
 
-  marketplace(user);
+  marketplace(user,snap.exists()?snap.data().username:user.displayName);
 }
 
-/* ================= POST ================= */
+/* POST */
 window.addPost=async function(){
 
   const title=document.getElementById("title").value;
@@ -262,7 +269,7 @@ window.addPost=async function(){
   });
 };
 
-/* ================= DELETE ================= */
+/* DELETE */
 window.deletePost=async function(id,uid){
 
   if(auth.currentUser.uid!==uid){
@@ -273,7 +280,7 @@ window.deletePost=async function(id,uid){
   await deleteDoc(doc(db,"posts",id));
 };
 
-/* ================= POSTS ================= */
+/* POSTS */
 function loadPosts(){
 
   const q=query(collection(db,"posts"),orderBy("createdAt","desc"));
@@ -294,7 +301,7 @@ function loadPosts(){
           <p>₱${p.price}</p>
           <p>${p.desc}</p>
 
-          <div style="font-size:12px;color:gray;">Seller: ${p.username}</div>
+          <div class="small">Seller: ${p.username}</div>
 
           <button onclick="openChat('${p.uid}','${p.username}')">Message</button>
 
@@ -307,7 +314,7 @@ function loadPosts(){
   });
 }
 
-/* ================= CHAT ================= */
+/* CHAT */
 window.openChat=function(sellerId,sellerName){
 
   const buyerId=auth.currentUser.uid;
@@ -321,12 +328,12 @@ window.openChat=function(sellerId,sellerName){
     <div class="main">
 
       <div class="card">
-        <h3>💬 ${sellerName}</h3>
+        <h3>💬 Chat with ${sellerName}</h3>
       </div>
 
       <div id="chatBox" class="chatBox"></div>
 
-      <input id="msg" placeholder="message...">
+      <input id="msg" placeholder="Type message...">
       <button onclick="sendMsg('${chatId}')">Send</button>
 
       <button onclick="location.reload()">Back</button>
@@ -352,7 +359,7 @@ window.sendMsg=async function(chatId){
   document.getElementById("msg").value="";
 };
 
-/* LOAD CHAT */
+/* LOAD CHAT (FIXED TEXT + NO OVERLAP) */
 function loadMessages(chatId){
 
   const q=query(collection(db,"chats",chatId,"messages"),orderBy("createdAt"));
@@ -367,26 +374,28 @@ function loadMessages(chatId){
       const me=m.senderId===auth.currentUser.uid;
 
       html+=`
-        <div style="text-align:${me?'right':'left'};margin:5px;">
-          <span style="background:${me?'black':'#eee'};color:${me?'white':'black'};padding:8px;border-radius:10px;">
+        <div class="msgRow ${me?'msgMe':'msgOther'}">
+          <div class="bubble ${me?'me':'other'}">
             ${m.text}
-          </span>
+          </div>
         </div>
       `;
     });
 
-    document.getElementById("chatBox").innerHTML=html;
+    const box=document.getElementById("chatBox");
+    box.innerHTML=html;
+    box.scrollTop=box.scrollHeight;
   });
 }
 
-/* ================= MARKETPLACE ================= */
-function marketplace(user){
+/* MARKETPLACE */
+function marketplace(user,username){
 
   root.innerHTML=`
     <div class="main">
 
       <div class="card">
-        <h2>Welcome</h2>
+        <h2>Welcome ${username}</h2>
 
         <input id="title" placeholder="Item">
         <input id="price" placeholder="Price">
@@ -400,16 +409,16 @@ function marketplace(user){
     </div>
 
     <!-- MESSENGER FLOAT -->
-    <div class="messenger-float" onclick="alert('Inbox next upgrade 🚀')">
+    <div class="messenger-float" onclick="alert('Inbox coming next upgrade 🚀')">
       💬
-      <div class="badge" style="display:none;">1</div>
+      <div class="badge">1</div>
     </div>
   `;
 
   loadPosts();
 }
 
-/* ================= AUTH ================= */
+/* AUTH */
 onAuthStateChanged(auth,(user)=>{
   if(user)checkUser(user);
   else loginPage();

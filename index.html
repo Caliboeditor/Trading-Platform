@@ -2,89 +2,113 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Trading Hub PRO Messenger</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Trading Hub PRO</title>
 
 <style>
-body{
+
+/* ================= BASE ================= */
+*{
+  box-sizing:border-box;
   margin:0;
+  padding:0;
   font-family:Arial;
+}
+
+body{
   background:#f4f4f4;
 }
 
-.app{
-  max-width:800px;
-  margin:auto;
-  padding:20px;
+/* ================= LAYOUT ================= */
+.container{
+  display:flex;
+  height:100vh;
 }
 
+/* LEFT SIDE (desktop chat list style optional) */
+.sidebar{
+  width:280px;
+  background:white;
+  border-right:1px solid #ddd;
+  padding:10px;
+  display:none;
+}
+
+/* MAIN */
+.main{
+  flex:1;
+  overflow:auto;
+  padding:12px;
+}
+
+/* ================= CARDS ================= */
 .card{
   background:white;
-  padding:15px;
+  padding:12px;
   border-radius:12px;
-  box-shadow:0 2px 10px rgba(0,0,0,0.1);
-  margin-bottom:15px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.1);
+  margin-bottom:10px;
 }
 
-input, textarea{
+/* ================= INPUT ================= */
+input,textarea{
   width:100%;
   padding:10px;
-  margin:5px 0;
+  margin-top:6px;
   border:1px solid #ddd;
   border-radius:8px;
+  font-size:16px;
 }
 
+/* ================= BUTTON ================= */
 button{
-  padding:8px;
+  width:100%;
+  padding:10px;
+  margin-top:8px;
   border:none;
   border-radius:8px;
-  cursor:pointer;
   background:#111;
   color:white;
-  margin-top:5px;
+  font-size:16px;
+  cursor:pointer;
 }
 
-.danger{
-  background:red;
-}
-
+/* ================= POSTS ================= */
 .post{
   background:white;
   padding:12px;
-  border-radius:10px;
-  margin:10px 0;
-  box-shadow:0 2px 5px rgba(0,0,0,0.1);
+  border-radius:12px;
+  margin-bottom:10px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.08);
 }
 
-.small{
-  font-size:12px;
-  color:gray;
-}
-
+/* ================= CHAT ================= */
 .chatBox{
-  height:350px;
+  height:60vh;
   overflow:auto;
+  background:#fafafa;
   border:1px solid #ddd;
   padding:10px;
   border-radius:10px;
-  background:#fafafa;
 }
 
-/* MESSENGER FLOAT */
+/* ================= MESSENGER FLOAT ================= */
 .messenger-float{
   position:fixed;
   bottom:20px;
   right:20px;
   width:60px;
   height:60px;
-  background:#0084ff;
   border-radius:50%;
+  background:#0084ff;
+  color:white;
   display:flex;
   justify-content:center;
   align-items:center;
-  color:white;
   font-size:26px;
-  cursor:pointer;
   box-shadow:0 4px 10px rgba(0,0,0,0.3);
+  z-index:9999;
 }
 
 .badge{
@@ -93,14 +117,55 @@ button{
   right:5px;
   background:red;
   color:white;
-  font-size:12px;
   width:20px;
   height:20px;
   border-radius:50%;
+  font-size:12px;
   display:flex;
   justify-content:center;
   align-items:center;
 }
+
+/* ================= DESKTOP MODE ================= */
+@media (min-width:900px){
+
+  .sidebar{
+    display:block;
+  }
+
+  .main{
+    padding:20px;
+  }
+
+  .chatBox{
+    height:70vh;
+  }
+}
+
+/* ================= MOBILE MODE ================= */
+@media (max-width:600px){
+
+  .container{
+    flex-direction:column;
+  }
+
+  .sidebar{
+    display:none;
+  }
+
+  .chatBox{
+    height:65vh;
+  }
+
+  button{
+    font-size:15px;
+  }
+
+  input,textarea{
+    font-size:15px;
+  }
+}
+
 </style>
 </head>
 
@@ -110,6 +175,7 @@ button{
 
 <script type="module">
 
+/* ================= FIREBASE ================= */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } 
 from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -127,7 +193,7 @@ import {
   orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-/* FIREBASE CONFIG */
+/* CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyAi6LMeK1MwXBBaI4xSvTAjrYn6P0YSTHM",
   authDomain: "trading-web-6d548.firebaseapp.com",
@@ -144,10 +210,10 @@ const provider = new GoogleAuthProvider();
 
 const root = document.getElementById("root");
 
-/* LOGIN */
+/* ================= LOGIN ================= */
 function loginPage(){
-  root.innerHTML = `
-    <div class="app">
+  root.innerHTML=`
+    <div class="main">
       <div class="card">
         <h2>🛒 Trading Hub PRO</h2>
         <button onclick="login()">Login with Google</button>
@@ -156,15 +222,15 @@ function loginPage(){
   `;
 }
 
-window.login = function(){
-  signInWithPopup(auth, provider);
+window.login=function(){
+  signInWithPopup(auth,provider);
 };
 
-/* USER CHECK */
+/* ================= USER ================= */
 async function checkUser(user){
 
-  const ref = doc(db,"users",user.uid);
-  const snap = await getDoc(ref);
+  const ref=doc(db,"users",user.uid);
+  const snap=await getDoc(ref);
 
   if(!snap.exists()){
     await setDoc(ref,{
@@ -173,46 +239,44 @@ async function checkUser(user){
     });
   }
 
-  marketplace(user,snap.exists()?snap.data().username:user.displayName);
+  marketplace(user);
 }
 
-/* POST */
-window.addPost = async function(){
+/* ================= POST ================= */
+window.addPost=async function(){
 
-  const title = document.getElementById("title").value;
-  const price = document.getElementById("price").value;
-  const desc = document.getElementById("desc").value;
+  const title=document.getElementById("title").value;
+  const price=document.getElementById("price").value;
+  const desc=document.getElementById("desc").value;
 
-  const user = auth.currentUser;
-
-  const userDoc = await getDoc(doc(db,"users",user.uid));
-  const username = userDoc.data().username;
+  const user=auth.currentUser;
+  const userDoc=await getDoc(doc(db,"users",user.uid));
 
   await addDoc(collection(db,"posts"),{
     title,
     price,
     desc,
-    username,
+    username:userDoc.data().username,
     uid:user.uid,
     createdAt:Date.now()
   });
 };
 
-/* DELETE */
-window.deletePost = async function(postId,uid){
+/* ================= DELETE ================= */
+window.deletePost=async function(id,uid){
 
-  if(auth.currentUser.uid !== uid){
+  if(auth.currentUser.uid!==uid){
     alert("Not allowed");
     return;
   }
 
-  await deleteDoc(doc(db,"posts",postId));
+  await deleteDoc(doc(db,"posts",id));
 };
 
-/* LOAD POSTS */
+/* ================= POSTS ================= */
 function loadPosts(){
 
-  const q = query(collection(db,"posts"),orderBy("createdAt","desc"));
+  const q=query(collection(db,"posts"),orderBy("createdAt","desc"));
 
   onSnapshot(q,(snap)=>{
 
@@ -222,7 +286,7 @@ function loadPosts(){
 
       const p=d.data();
       const id=d.id;
-      const me = auth.currentUser.uid === p.uid;
+      const me=auth.currentUser.uid===p.uid;
 
       html+=`
         <div class="post">
@@ -230,11 +294,11 @@ function loadPosts(){
           <p>₱${p.price}</p>
           <p>${p.desc}</p>
 
-          <div class="small">Seller: ${p.username}</div>
+          <div style="font-size:12px;color:gray;">Seller: ${p.username}</div>
 
           <button onclick="openChat('${p.uid}','${p.username}')">Message</button>
 
-          ${me?`<button class="danger" onclick="deletePost('${id}','${p.uid}')">Delete</button>`:""}
+          ${me?`<button style="background:red;" onclick="deletePost('${id}','${p.uid}')">Delete</button>`:""}
         </div>
       `;
     });
@@ -243,10 +307,10 @@ function loadPosts(){
   });
 }
 
-/* CHAT */
-window.openChat = function(sellerId,sellerName){
+/* ================= CHAT ================= */
+window.openChat=function(sellerId,sellerName){
 
-  const buyerId = auth.currentUser.uid;
+  const buyerId=auth.currentUser.uid;
 
   const chatId =
     buyerId < sellerId
@@ -254,13 +318,15 @@ window.openChat = function(sellerId,sellerName){
       : sellerId+"_"+buyerId;
 
   root.innerHTML=`
-    <div class="app">
+    <div class="main">
 
-      <h3>💬 Chat with ${sellerName}</h3>
+      <div class="card">
+        <h3>💬 ${sellerName}</h3>
+      </div>
 
       <div id="chatBox" class="chatBox"></div>
 
-      <input id="msg">
+      <input id="msg" placeholder="message...">
       <button onclick="sendMsg('${chatId}')">Send</button>
 
       <button onclick="location.reload()">Back</button>
@@ -271,12 +337,11 @@ window.openChat = function(sellerId,sellerName){
   loadMessages(chatId);
 };
 
-/* SEND MESSAGE */
-window.sendMsg = async function(chatId){
+/* SEND */
+window.sendMsg=async function(chatId){
 
   const msg=document.getElementById("msg").value;
-
-  if(!msg) return;
+  if(!msg)return;
 
   await addDoc(collection(db,"chats",chatId,"messages"),{
     text:msg,
@@ -299,16 +364,11 @@ function loadMessages(chatId){
     snap.forEach(d=>{
 
       const m=d.data();
-      const me = m.senderId===auth.currentUser.uid;
+      const me=m.senderId===auth.currentUser.uid;
 
       html+=`
         <div style="text-align:${me?'right':'left'};margin:5px;">
-          <span style="
-            background:${me?'black':'#eee'};
-            color:${me?'white':'black'};
-            padding:8px 12px;
-            border-radius:10px;
-          ">
+          <span style="background:${me?'black':'#eee'};color:${me?'white':'black'};padding:8px;border-radius:10px;">
             ${m.text}
           </span>
         </div>
@@ -319,14 +379,14 @@ function loadMessages(chatId){
   });
 }
 
-/* MARKETPLACE */
-function marketplace(user,username){
+/* ================= MARKETPLACE ================= */
+function marketplace(user){
 
   root.innerHTML=`
-    <div class="app">
+    <div class="main">
 
       <div class="card">
-        <h2>Welcome ${username}</h2>
+        <h2>Welcome</h2>
 
         <input id="title" placeholder="Item">
         <input id="price" placeholder="Price">
@@ -337,43 +397,21 @@ function marketplace(user,username){
 
       <div id="posts"></div>
 
-      <div class="card">
-        <button onclick="logout()">Logout</button>
-      </div>
-
     </div>
 
     <!-- MESSENGER FLOAT -->
-    <div class="messenger-float" onclick="openInbox()">
+    <div class="messenger-float" onclick="alert('Inbox next upgrade 🚀')">
       💬
-      <div id="badge" class="badge" style="display:none;">0</div>
+      <div class="badge" style="display:none;">1</div>
     </div>
   `;
 
   loadPosts();
-  updateBadge();
 }
 
-/* BADGE (simple version) */
-function updateBadge(){
-  const badge=document.getElementById("badge");
-  badge.style.display="flex";
-  badge.innerText="1";
-}
-
-/* INBOX (simple placeholder) */
-window.openInbox=function(){
-  alert("Inbox feature next upgrade 🚀");
-};
-
-/* LOGOUT */
-window.logout=function(){
-  auth.signOut();
-};
-
-/* AUTH */
+/* ================= AUTH ================= */
 onAuthStateChanged(auth,(user)=>{
-  if(user) checkUser(user);
+  if(user)checkUser(user);
   else loginPage();
 });
 

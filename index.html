@@ -1,179 +1,28 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Trading Hub PRO MAX</title>
+<title>Trading Hub STEP 5</title>
 
 <style>
+body{margin:0;font-family:Arial;background:#eef0f4;}
+.main{max-width:900px;margin:auto;padding:10px;}
+.card{background:white;padding:12px;border-radius:12px;margin-bottom:10px;}
+input,textarea{width:100%;padding:10px;margin-top:6px;border-radius:8px;border:1px solid #ddd;}
+button{width:100%;padding:10px;margin-top:8px;border:none;background:#111;color:white;border-radius:8px;}
+.post{background:white;padding:12px;border-radius:10px;margin:10px 0;}
+.chatBox{height:60vh;overflow:auto;background:#f7f7f7;padding:10px;border-radius:10px;}
+.msg{margin:5px;padding:8px;border-radius:10px;display:inline-block;max-width:70%;}
+.me{background:black;color:white;float:right;clear:both;}
+.other{background:#ddd;float:left;clear:both;}
 
-/* RESET */
-*{
-  box-sizing:border-box;
-  margin:0;
-  padding:0;
-  font-family:Arial;
+.messenger{
+position:fixed;bottom:20px;right:20px;width:60px;height:60px;background:#0084ff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:25px;cursor:pointer;
 }
+.badge{position:absolute;top:5px;right:5px;background:red;width:18px;height:18px;border-radius:50%;font-size:12px;display:flex;align-items:center;justify-content:center;color:white;}
 
-body{
-  background:#eef0f4;
-  color:#111;
-}
-
-/* APP */
-.main{
-  max-width:900px;
-  margin:auto;
-  padding:12px;
-}
-
-/* CARD */
-.card{
-  background:white;
-  padding:14px;
-  border-radius:12px;
-  box-shadow:0 2px 10px rgba(0,0,0,0.08);
-  margin-bottom:12px;
-}
-
-/* INPUT */
-input,textarea{
-  width:100%;
-  padding:12px;
-  margin-top:8px;
-  border:1px solid #ddd;
-  border-radius:10px;
-  font-size:15px;
-  outline:none;
-}
-
-/* BUTTON */
-button{
-  width:100%;
-  padding:12px;
-  margin-top:10px;
-  border:none;
-  border-radius:10px;
-  background:#111;
-  color:white;
-  font-size:15px;
-  cursor:pointer;
-}
-
-/* POSTS */
-.post{
-  background:white;
-  padding:14px;
-  border-radius:12px;
-  margin-bottom:12px;
-  box-shadow:0 2px 6px rgba(0,0,0,0.08);
-}
-
-.small{
-  font-size:12px;
-  color:gray;
-}
-
-/* CHAT BOX */
-.chatBox{
-  height:65vh;
-  overflow:auto;
-  background:#f7f7f7;
-  border:1px solid #ddd;
-  padding:12px;
-  border-radius:12px;
-}
-
-/* CHAT BUBBLE FIX (IMPORTANT FIX MO) */
-.msgRow{
-  display:flex;
-  margin:6px 0;
-}
-
-.msgMe{
-  justify-content:flex-end;
-}
-
-.msgOther{
-  justify-content:flex-start;
-}
-
-.bubble{
-  max-width:70%;
-  padding:10px 12px;
-  border-radius:14px;
-  word-wrap:break-word;
-  white-space:pre-wrap; /* 🔥 FIX TEXT OVERLAP */
-  line-height:1.4;
-  font-size:14px;
-}
-
-.me{
-  background:#111;
-  color:white;
-  border-bottom-right-radius:4px;
-}
-
-.other{
-  background:#e4e4e4;
-  color:black;
-  border-bottom-left-radius:4px;
-}
-
-/* MESSENGER FLOAT */
-.messenger-float{
-  position:fixed;
-  bottom:18px;
-  right:18px;
-  width:60px;
-  height:60px;
-  border-radius:50%;
-  background:#0084ff;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  color:white;
-  font-size:26px;
-  box-shadow:0 5px 12px rgba(0,0,0,0.3);
-  z-index:9999;
-}
-
-.badge{
-  position:absolute;
-  top:5px;
-  right:5px;
-  width:20px;
-  height:20px;
-  background:red;
-  color:white;
-  font-size:12px;
-  border-radius:50%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-
-/* MOBILE FIX */
-@media(max-width:600px){
-  .main{
-    padding:10px;
-  }
-
-  .bubble{
-    max-width:80%;
-    font-size:13px;
-  }
-
-  input,textarea,button{
-    font-size:14px;
-  }
-
-  .chatBox{
-    height:60vh;
-  }
-}
-
+img{max-width:100%;border-radius:10px;margin-top:5px;}
 </style>
 </head>
 
@@ -183,30 +32,17 @@ button{
 
 <script type="module">
 
-/* FIREBASE */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } 
-from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, collection, addDoc, onSnapshot, query, orderBy, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
-import {
-  getFirestore,
-  doc,
-  getDoc,
-  setDoc,
-  collection,
-  addDoc,
-  deleteDoc,
-  onSnapshot,
-  query,
-  orderBy
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-/* CONFIG */
+/* FIREBASE */
 const firebaseConfig = {
   apiKey: "AIzaSyAi6LMeK1MwXBBaI4xSvTAjrYn6P0YSTHM",
   authDomain: "trading-web-6d548.firebaseapp.com",
   projectId: "trading-web-6d548",
-  storageBucket: "trading-web-6d548.firebasestorage.app",
+  storageBucket: "trading-web-6d548.appspot.com",
   messagingSenderId: "465015762771",
   appId: "1:465015762771:web:394098ccad3f3ef2c53ba6"
 };
@@ -214,214 +50,203 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app);
 const provider = new GoogleAuthProvider();
 
 const root = document.getElementById("root");
 
 /* LOGIN */
 function loginPage(){
-  root.innerHTML=`
-    <div class="main">
-      <div class="card">
-        <h2>🛒 Trading Hub PRO MAX</h2>
-        <button onclick="login()">Login with Google</button>
-      </div>
-    </div>
-  `;
+root.innerHTML=`
+<div class="main">
+<div class="card">
+<h2>Trading Hub STEP 5</h2>
+<button onclick="login()">Login Google</button>
+</div>
+</div>`;
 }
 
-window.login=function(){
-  signInWithPopup(auth,provider);
-};
+window.login=()=>signInWithPopup(auth,provider);
 
 /* USER */
 async function checkUser(user){
-  const ref=doc(db,"users",user.uid);
-  const snap=await getDoc(ref);
+const ref=doc(db,"users",user.uid);
+const snap=await getDoc(ref);
 
-  if(!snap.exists()){
-    await setDoc(ref,{
-      username:user.displayName,
-      createdAt:Date.now()
-    });
-  }
+if(!snap.exists()){
+await setDoc(ref,{
+name:user.displayName,
+online:true
+});
+}
 
-  marketplace(user,snap.exists()?snap.data().username:user.displayName);
+home(user);
+}
+
+/* ONLINE */
+async function setOnline(status){
+const user=auth.currentUser;
+if(!user) return;
+await updateDoc(doc(db,"users",user.uid),{online:status});
+}
+
+/* IMAGE UPLOAD */
+async function uploadImage(file,path){
+const storageRef=ref(storage,path);
+await uploadBytes(storageRef,file);
+return await getDownloadURL(storageRef);
 }
 
 /* POST */
 window.addPost=async function(){
 
-  const title=document.getElementById("title").value;
-  const price=document.getElementById("price").value;
-  const desc=document.getElementById("desc").value;
+const title=document.getElementById("title").value;
+const price=document.getElementById("price").value;
+const desc=document.getElementById("desc").value;
+const file=document.getElementById("img").files[0];
 
-  const user=auth.currentUser;
-  const userDoc=await getDoc(doc(db,"users",user.uid));
+let imgURL="";
 
-  await addDoc(collection(db,"posts"),{
-    title,
-    price,
-    desc,
-    username:userDoc.data().username,
-    uid:user.uid,
-    createdAt:Date.now()
-  });
+if(file){
+imgURL=await uploadImage(file,"posts/"+Date.now());
+}
+
+await addDoc(collection(db,"posts"),{
+title,price,desc,img:imgURL,
+uid:auth.currentUser.uid,
+createdAt:Date.now()
+});
 };
 
-/* DELETE */
-window.deletePost=async function(id,uid){
-
-  if(auth.currentUser.uid!==uid){
-    alert("Not allowed");
-    return;
-  }
-
-  await deleteDoc(doc(db,"posts",id));
-};
-
-/* POSTS */
+/* LOAD POSTS + SEARCH */
 function loadPosts(){
 
-  const q=query(collection(db,"posts"),orderBy("createdAt","desc"));
+const q=query(collection(db,"posts"),orderBy("createdAt","desc"));
 
-  onSnapshot(q,(snap)=>{
+onSnapshot(q,(snap)=>{
 
-    let html="";
+let html="";
 
-    snap.forEach(d=>{
+snap.forEach(d=>{
+const p=d.data();
 
-      const p=d.data();
-      const id=d.id;
-      const me=auth.currentUser.uid===p.uid;
+html+=`
+<div class="post">
+<h3>${p.title}</h3>
+<p>₱${p.price}</p>
+<p>${p.desc}</p>
+${p.img?`<img src="${p.img}">`:""}
+<button onclick="openChat('${p.uid}')">Message</button>
+</div>`;
+});
 
-      html+=`
-        <div class="post">
-          <h3>${p.title}</h3>
-          <p>₱${p.price}</p>
-          <p>${p.desc}</p>
-
-          <div class="small">Seller: ${p.username}</div>
-
-          <button onclick="openChat('${p.uid}','${p.username}')">Message</button>
-
-          ${me?`<button style="background:red;" onclick="deletePost('${id}','${p.uid}')">Delete</button>`:""}
-        </div>
-      `;
-    });
-
-    document.getElementById("posts").innerHTML=html;
-  });
+document.getElementById("posts").innerHTML=html;
+});
 }
 
 /* CHAT */
-window.openChat=function(sellerId,sellerName){
+window.openChat=function(uid){
 
-  const buyerId=auth.currentUser.uid;
+const chatId=auth.currentUser.uid<uid?
+auth.currentUser.uid+"_"+uid:
+uid+"_"+auth.currentUser.uid;
 
-  const chatId =
-    buyerId < sellerId
-      ? buyerId+"_"+sellerId
-      : sellerId+"_"+buyerId;
+root.innerHTML=`
+<div class="main">
+<h3>Chat</h3>
+<div id="chatBox" class="chatBox"></div>
+<input id="msg">
+<input type="file" id="chatImg">
+<button onclick="send('${chatId}')">Send</button>
+<button onclick="home()">Back</button>
+</div>`;
 
-  root.innerHTML=`
-    <div class="main">
-
-      <div class="card">
-        <h3>💬 Chat with ${sellerName}</h3>
-      </div>
-
-      <div id="chatBox" class="chatBox"></div>
-
-      <input id="msg" placeholder="Type message...">
-      <button onclick="sendMsg('${chatId}')">Send</button>
-
-      <button onclick="location.reload()">Back</button>
-
-    </div>
-  `;
-
-  loadMessages(chatId);
+loadChat(chatId);
 };
 
-/* SEND */
-window.sendMsg=async function(chatId){
+/* SEND MESSAGE + IMAGE */
+window.send=async function(chatId){
 
-  const msg=document.getElementById("msg").value;
-  if(!msg)return;
+const msg=document.getElementById("msg").value;
+const file=document.getElementById("chatImg").files[0];
 
-  await addDoc(collection(db,"chats",chatId,"messages"),{
-    text:msg,
-    senderId:auth.currentUser.uid,
-    createdAt:Date.now()
-  });
+let img="";
 
-  document.getElementById("msg").value="";
+if(file){
+img=await uploadImage(file,"chat/"+Date.now());
+}
+
+await addDoc(collection(db,"chats",chatId,"messages"),{
+text:msg,
+img,
+sender:auth.currentUser.uid,
+createdAt:Date.now()
+});
 };
 
-/* LOAD CHAT (FIXED TEXT + NO OVERLAP) */
-function loadMessages(chatId){
+/* LOAD CHAT */
+function loadChat(chatId){
 
-  const q=query(collection(db,"chats",chatId,"messages"),orderBy("createdAt"));
+const q=query(collection(db,"chats",chatId,"messages"),orderBy("createdAt"));
 
-  onSnapshot(q,(snap)=>{
+onSnapshot(q,(snap)=>{
 
-    let html="";
+let html="";
 
-    snap.forEach(d=>{
+snap.forEach(d=>{
+const m=d.data();
+const me=m.sender===auth.currentUser.uid;
 
-      const m=d.data();
-      const me=m.senderId===auth.currentUser.uid;
+html+=`
+<div class="msg ${me?'me':'other'}">
+${m.text||""}
+${m.img?`<img src="${m.img}">`:""}
+</div>`;
+});
 
-      html+=`
-        <div class="msgRow ${me?'msgMe':'msgOther'}">
-          <div class="bubble ${me?'me':'other'}">
-            ${m.text}
-          </div>
-        </div>
-      `;
-    });
-
-    const box=document.getElementById("chatBox");
-    box.innerHTML=html;
-    box.scrollTop=box.scrollHeight;
-  });
+document.getElementById("chatBox").innerHTML=html;
+});
 }
 
-/* MARKETPLACE */
-function marketplace(user,username){
+/* HOME */
+function home(){
 
-  root.innerHTML=`
-    <div class="main">
+root.innerHTML=`
+<div class="main">
 
-      <div class="card">
-        <h2>Welcome ${username}</h2>
+<div class="card">
+<h3>Post Item</h3>
+<input id="title" placeholder="title">
+<input id="price" placeholder="price">
+<textarea id="desc"></textarea>
+<input type="file" id="img">
+<button onclick="addPost()">Post</button>
+</div>
 
-        <input id="title" placeholder="Item">
-        <input id="price" placeholder="Price">
-        <textarea id="desc" placeholder="Description"></textarea>
+<div id="posts"></div>
 
-        <button onclick="addPost()">Post</button>
-      </div>
+</div>
 
-      <div id="posts"></div>
+<div class="messenger" onclick="inbox()">
+💬
+<div class="badge">1</div>
+</div>
+`;
 
-    </div>
-
-    <!-- MESSENGER FLOAT -->
-    <div class="messenger-float" onclick="alert('Inbox coming next upgrade 🚀')">
-      💬
-      <div class="badge">1</div>
-    </div>
-  `;
-
-  loadPosts();
+loadPosts();
 }
+
+/* INBOX (REAL START VERSION) */
+window.inbox=function(){
+alert("Inbox system next upgrade (STEP 6 advanced unread system)");
+};
 
 /* AUTH */
 onAuthStateChanged(auth,(user)=>{
-  if(user)checkUser(user);
-  else loginPage();
+if(user){
+setOnline(true);
+checkUser(user);
+}else loginPage();
 });
 
 loginPage();

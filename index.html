@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>STEP 7 INBOX UPGRADE</title>
+<title>Trading Hub FINAL STEP 7 FIX</title>
 
 <style>
 body{margin:0;font-family:Arial;background:#eef0f4;}
@@ -12,8 +12,11 @@ body{margin:0;font-family:Arial;background:#eef0f4;}
 input,textarea{width:100%;padding:10px;margin-top:5px;border-radius:8px;border:1px solid #ddd;}
 button{width:100%;padding:10px;margin-top:8px;background:#111;color:white;border:none;border-radius:8px;}
 
+/* POSTS */
 .post{background:white;padding:12px;border-radius:10px;margin:10px 0;}
+img{max-width:100%;border-radius:10px;margin-top:5px;}
 
+/* CHAT */
 .chatBox{height:60vh;overflow:auto;background:#f7f7f7;padding:10px;border-radius:10px;}
 
 .msgRow{display:flex;margin:6px 0;}
@@ -31,29 +34,14 @@ word-wrap:break-word;
 .mine{background:black;color:white;}
 .theirs{background:#ddd;}
 
-/* INBOX UI */
+/* INBOX */
 .inboxItem{
 background:white;
 padding:12px;
 border-radius:10px;
 margin-bottom:10px;
 cursor:pointer;
-display:flex;
-justify-content:space-between;
-align-items:center;
 box-shadow:0 2px 6px rgba(0,0,0,0.08);
-}
-
-.badge{
-background:red;
-color:white;
-width:20px;
-height:20px;
-border-radius:50%;
-display:flex;
-align-items:center;
-justify-content:center;
-font-size:12px;
 }
 
 .messenger{
@@ -95,7 +83,7 @@ orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 /* FIREBASE */
-const firebaseConfig={
+const firebaseConfig = {
 apiKey:"AIzaSyAi6LMeK1MwXBBaI4xSvTAjrYn6P0YSTHM",
 authDomain:"trading-web-6d548.firebaseapp.com",
 projectId:"trading-web-6d548",
@@ -115,16 +103,16 @@ function loginPage(){
 root.innerHTML=`
 <div class="main">
 <div class="card">
-<h2>STEP 7 INBOX SYSTEM</h2>
-<button onclick="login()">Login</button>
+<h2>Trading Hub</h2>
+<button onclick="login()">Login Google</button>
 </div>
 </div>`;
 }
 
 window.login=()=>signInWithPopup(auth,new GoogleAuthProvider());
 
-/* ================= USERS ================= */
-async function ensureUser(user){
+/* ================= USER INIT ================= */
+async function initUser(user){
 const ref=doc(db,"users",user.uid);
 const snap=await getDoc(ref);
 
@@ -138,33 +126,78 @@ createdAt:Date.now()
 home();
 }
 
-/* ================= MARKETPLACE DEMO ================= */
+/* ================= HOME ================= */
 function home(){
 
 root.innerHTML=`
 <div class="main">
 
 <div class="card">
-<h3>Marketplace</h3>
-<p>Click users to chat demo</p>
-
-<button onclick="openChat('userA')">Chat User A</button>
-<button onclick="openChat('userB')">Chat User B</button>
+<h3>Create Post</h3>
+<input id="title" placeholder="title">
+<input id="price" placeholder="price">
+<textarea id="desc" placeholder="desc"></textarea>
+<button onclick="addPost()">Post</button>
 </div>
 
+<div id="posts"></div>
+
 </div>
 
-<div class="messenger" onclick="openInbox()">
-💬
-</div>
+<div class="messenger" onclick="openInbox()">💬</div>
 `;
+
+loadPosts();
 }
 
-/* ================= CHAT SYSTEM ================= */
-window.openChat=function(uid){
+/* ================= ADD POST ================= */
+window.addPost=async function(){
+
+const title=document.getElementById("title").value;
+const price=document.getElementById("price").value;
+const desc=document.getElementById("desc").value;
+
+await addDoc(collection(db,"posts"),{
+title,price,desc,
+uid:auth.currentUser.uid,
+createdAt:Date.now()
+});
+};
+
+/* ================= LOAD POSTS ================= */
+function loadPosts(){
+
+const q=query(collection(db,"posts"),orderBy("createdAt","desc"));
+
+onSnapshot(q,(snap)=>{
+
+let html="";
+
+snap.forEach(d=>{
+const p=d.data();
+
+html+=`
+<div class="post">
+<h3>${p.title}</h3>
+<p>₱${p.price}</p>
+<p>${p.desc}</p>
+
+<button onclick="openChat('${p.uid}')">Message Seller</button>
+</div>`;
+});
+
+document.getElementById("posts").innerHTML=html;
+});
+}
+
+/* ================= CHAT ================= */
+window.openChat=function(otherUid){
 
 const me=auth.currentUser.uid;
-const chatId = me<uid ? me+"_"+uid : uid+"_"+me;
+
+const chatId = me < otherUid
+? me+"_"+otherUid
+: otherUid+"_"+me;
 
 root.innerHTML=`
 <div class="main">
@@ -220,14 +253,14 @@ document.getElementById("chatBox").innerHTML=html;
 });
 }
 
-/* ================= INBOX CORE (STEP 7 MAIN FEATURE) ================= */
+/* ================= INBOX (REAL FIXED) ================= */
 window.openInbox=function(){
 
 const me=auth.currentUser.uid;
 
 root.innerHTML=`
 <div class="main">
-<h2>💬 Inbox</h2>
+<h2>Inbox</h2>
 <div id="inboxList"></div>
 <button onclick="home()">Back</button>
 </div>
@@ -236,7 +269,7 @@ root.innerHTML=`
 loadInbox();
 };
 
-/* ================= LOAD INBOX (REAL SYSTEM) ================= */
+/* REAL INBOX */
 function loadInbox(){
 
 const me=auth.currentUser.uid;
@@ -248,42 +281,25 @@ onSnapshot(q,(snap)=>{
 let html="";
 
 snap.forEach(d=>{
-
 const chatId=d.id;
 
 if(!chatId.includes(me)) return;
 
-const other=chatId.replace(me,"").replace("_","");
-
-/* last message */
-const msgRef=collection(db,"chats",chatId,"messages");
-
-onSnapshot(query(msgRef,orderBy("createdAt")), (msgs)=>{
-
-let last="";
-msgs.forEach(m=> last=m.data().text);
+const otherUid = chatId.replace(me,"").replace("_","");
 
 html+=`
-<div class="inboxItem" onclick="openChat('${other}')">
-<div>
-<b>${other}</b><br>
-<small>${last}</small>
-</div>
-
-<div class="badge">1</div>
-</div>
-`;
+<div class="inboxItem" onclick="openChat('${otherUid}')">
+💬 Chat with ${otherUid}
+</div>`;
+});
 
 document.getElementById("inboxList").innerHTML=html;
-});
-});
-
 });
 }
 
 /* AUTH */
 onAuthStateChanged(auth,(user)=>{
-if(user) ensureUser(user);
+if(user) initUser(user);
 else loginPage();
 });
 

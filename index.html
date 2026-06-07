@@ -19,6 +19,7 @@ body {
     max-width: 900px;
     margin: auto;
     padding: 15px;
+    padding-bottom: 100px;
 }
 
 .card {
@@ -67,7 +68,7 @@ textarea {
     resize: vertical;
 }
 
-button {
+button, .btn {
     width: 100%;
     padding: 12px;
     margin-top: 10px;
@@ -83,44 +84,45 @@ button {
     align-items: center;
     justify-content: center;
     gap: 6px;
+    text-decoration: none;
 }
 
-button:hover {
+button:hover, .btn:hover {
     background: #333;
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
-button:active {
+button:active, .btn:active {
     transform: translateY(0);
 }
 
-button.secondary {
+button.secondary, .btn.secondary {
     background: #f0f0f0;
     color: #333;
 }
 
-button.secondary:hover {
+button.secondary:hover, .btn.secondary:hover {
     background: #e0e0e0;
 }
 
-button.danger {
+button.danger, .btn.danger {
     background: #e74c3c;
 }
 
-button.danger:hover {
+button.danger:hover, .btn.danger:hover {
     background: #c0392b;
 }
 
-button.success {
+button.success, .btn.success {
     background: #27ae60;
 }
 
-button.success:hover {
+button.success:hover, .btn.success:hover {
     background: #219a52;
 }
 
-button.small {
+button.small, .btn.small {
     width: auto;
     padding: 6px 14px;
     font-size: 13px;
@@ -395,23 +397,6 @@ button.small {
     margin-top: 0;
 }
 
-.search-bar {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 12px;
-}
-
-.search-bar input {
-    margin-top: 0;
-    flex: 1;
-}
-
-.search-bar button {
-    width: auto;
-    padding: 12px 20px;
-    margin-top: 0;
-}
-
 .empty-state {
     text-align: center;
     padding: 40px;
@@ -476,7 +461,6 @@ button.small {
     color: #222;
 }
 
-/* Image preview in create post */
 .image-preview {
     margin-top: 10px;
     border-radius: 10px;
@@ -491,7 +475,48 @@ button.small {
     border-radius: 10px;
 }
 
-/* Responsive */
+.profile-photo-picker {
+    text-align: center;
+    padding: 20px;
+}
+
+.profile-photo-picker img {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 16px;
+    border: 3px solid #0084ff;
+}
+
+.profile-photo-picker .photo-options {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 12px;
+}
+
+.profile-photo-picker .photo-option {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: all 0.2s;
+}
+
+.profile-photo-picker .photo-option:hover {
+    border-color: #0084ff;
+    transform: scale(1.1);
+}
+
+.profile-photo-picker .photo-option.selected {
+    border-color: #27ae60;
+    transform: scale(1.15);
+}
+
 @media (max-width: 600px) {
     .main { padding: 10px; }
     .post-actions button { min-width: 80px; font-size: 13px; }
@@ -548,9 +573,11 @@ const storage = getStorage(app);
 
 const root = document.getElementById("root");
 let currentUserData = null;
+let currentUserObj = null;
 let unsubInbox = null;
 let unsubPosts = null;
 let unsubChat = null;
+let unsubBadge = null;
 
 /* ================= UTILS ================= */
 function showToast(msg) {
@@ -572,9 +599,14 @@ function formatTime(ts) {
 }
 
 function escapeHtml(text) {
+    if (!text) return "";
     const div = document.createElement("div");
     div.textContent = text;
     return div.innerHTML;
+}
+
+function getChatId(me, other) {
+    return me < other ? me + "_" + other : other + "_" + me;
 }
 
 /* ================= LOGIN ================= */
@@ -585,37 +617,140 @@ function loginPage() {
             <div style="font-size:56px;margin-bottom:16px;">📦</div>
             <h2 style="font-size:28px;margin-bottom:8px;">Trading Hub</h2>
             <p style="color:#888;margin-bottom:24px;">Buy and sell with your community</p>
-            <button onclick="window.login()" style="font-size:16px;padding:14px;">
+            <button id="loginBtn" style="font-size:16px;padding:14px;">
                 <span>🔑</span> Login with Google
             </button>
         </div>
     </div>`;
+
+    document.getElementById("loginBtn").addEventListener("click", () => {
+        signInWithPopup(auth, new GoogleAuthProvider()).catch(e => showToast(e.message));
+    });
 }
 
-window.login = () => signInWithPopup(auth, new GoogleAuthProvider()).catch(e => showToast(e.message));
+/* ================= PROFILE PHOTO PICKER ================= */
+function showPhotoPicker(user) {
+    const defaultPhotos = [
+        "https://api.dicebear.com/7.x/avataaars/svg?seed=" + user.uid,
+        "https://api.dicebear.com/7.x/bottts/svg?seed=" + user.uid,
+        "https://api.dicebear.com/7.x/fun-emoji/svg?seed=" + user.uid,
+        "https://api.dicebear.com/7.x/notionists/svg?seed=" + user.uid,
+        "https://api.dicebear.com/7.x/adventurer/svg?seed=" + user.uid,
+        "https://api.dicebear.com/7.x/lorelei/svg?seed=" + user.uid
+    ];
 
-window.logout = () => {
-    signOut(auth);
-    showToast("Logged out");
-};
+    const googlePhoto = user.photoURL || "";
+    let selectedPhoto = googlePhoto || defaultPhotos[0];
+
+    let photosHtml = "";
+
+    if (googlePhoto) {
+        photosHtml += `
+        <div style="margin-bottom:16px;">
+            <p style="color:#888;font-size:13px;margin-bottom:8px;">Google Photo</p>
+            <img src="${googlePhoto}" class="photo-option selected" data-photo="${googlePhoto}" style="width:80px;height:80px;">
+        </div>`;
+    }
+
+    photosHtml += `<p style="color:#888;font-size:13px;margin-bottom:8px;">Choose an avatar</p><div class="photo-options">`;
+
+    defaultPhotos.forEach((photo, idx) => {
+        const isSelected = !googlePhoto && idx === 0 ? "selected" : "";
+        photosHtml += `<img src="${photo}" class="photo-option ${isSelected}" data-photo="${photo}">`;
+    });
+
+    photosHtml += `</div>`;
+
+    root.innerHTML = `
+    <div class="main" style="max-width:400px;margin-top:40px;">
+        <div class="card profile-photo-picker">
+            <h3>📸 Choose Your Profile Photo</h3>
+            <img id="selectedPreview" src="${selectedPhoto}" alt="Preview">
+            <p style="color:#888;font-size:14px;margin-bottom:16px;">Tap an image to select</p>
+            ${photosHtml}
+            <div style="margin-top:16px;">
+                <p style="color:#888;font-size:13px;margin-bottom:8px;">Or upload your own</p>
+                <input type="file" id="customPhoto" accept="image/*" style="margin-top:0;">
+            </div>
+            <button id="savePhotoBtn" class="success" style="margin-top:16px;">
+                <span>✅</span> Save & Continue
+            </button>
+        </div>
+    </div>`;
+
+    // Handle photo selection
+    document.querySelectorAll(".photo-option").forEach(img => {
+        img.addEventListener("click", function() {
+            document.querySelectorAll(".photo-option").forEach(el => el.classList.remove("selected"));
+            this.classList.add("selected");
+            selectedPhoto = this.dataset.photo;
+            document.getElementById("selectedPreview").src = selectedPhoto;
+        });
+    });
+
+    // Handle custom photo upload
+    document.getElementById("customPhoto").addEventListener("change", async function() {
+        const file = this.files[0];
+        if (!file) return;
+
+        const btn = document.getElementById("savePhotoBtn");
+        btn.innerHTML = `<span class="spinner"></span> Uploading...`;
+        btn.disabled = true;
+
+        try {
+            const imgRef = storageRef(storage, `profiles/${user.uid}/${Date.now()}_${file.name}`);
+            await uploadBytes(imgRef, file);
+            selectedPhoto = await getDownloadURL(imgRef);
+            document.getElementById("selectedPreview").src = selectedPhoto;
+            document.querySelectorAll(".photo-option").forEach(el => el.classList.remove("selected"));
+            showToast("Photo uploaded!");
+        } catch (e) {
+            showToast("Upload failed: " + e.message);
+        } finally {
+            btn.innerHTML = `<span>✅</span> Save & Continue`;
+            btn.disabled = false;
+        }
+    });
+
+    // Save and continue
+    document.getElementById("savePhotoBtn").addEventListener("click", async () => {
+        const btn = document.getElementById("savePhotoBtn");
+        btn.innerHTML = `<span class="spinner"></span> Saving...`;
+        btn.disabled = true;
+
+        try {
+            await setDoc(doc(db, "users", user.uid), {
+                name: user.displayName || "User",
+                email: user.email || "",
+                photo: selectedPhoto,
+                createdAt: serverTimestamp()
+            });
+
+            currentUserData = { name: user.displayName || "User", email: user.email || "", photo: selectedPhoto };
+            currentUserObj = user;
+            home();
+            showToast("Welcome! 🎉");
+        } catch (e) {
+            showToast("Error: " + e.message);
+            btn.innerHTML = `<span>✅</span> Save & Continue`;
+            btn.disabled = false;
+        }
+    });
+}
 
 /* ================= USER ================= */
 async function initUser(user) {
+    currentUserObj = user;
     const ref = doc(db, "users", user.uid);
     const snap = await getDoc(ref);
 
     if (!snap.exists()) {
-        await setDoc(ref, {
-            name: user.displayName || "User",
-            email: user.email || "",
-            photo: user.photoURL || "",
-            createdAt: serverTimestamp()
-        });
+        showPhotoPicker(user);
+        return;
     } else {
         await updateDoc(ref, {
             name: user.displayName || "User",
-            email: user.email || "",
-            photo: user.photoURL || ""
+            email: user.email || ""
         });
     }
 
@@ -624,20 +759,24 @@ async function initUser(user) {
     home();
 }
 
+window.logout = () => {
+    signOut(auth);
+    showToast("Logged out");
+};
+
 /* ================= HOME ================= */
 function home() {
-    // Clean up old listeners
-    if (unsubPosts) unsubPosts();
-    if (unsubChat) unsubChat();
+    if (unsubPosts) { unsubPosts(); unsubPosts = null; }
+    if (unsubChat) { unsubChat(); unsubChat = null; }
 
     root.innerHTML = `
     <div class="main">
         <div class="card" style="display:flex;align-items:center;justify-content:space-between;">
             <div class="user-header">
-                <img src="${currentUserData?.photo || 'https://via.placeholder.com/36'}" alt="">
+                <img src="${escapeHtml(currentUserData?.photo || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default')}" alt="">
                 <span>${escapeHtml(currentUserData?.name || 'User')}</span>
             </div>
-            <button class="small secondary" onclick="window.logout()">Logout</button>
+            <button id="logoutBtn" class="small secondary">Logout</button>
         </div>
 
         <div class="card">
@@ -645,9 +784,9 @@ function home() {
             <input id="title" placeholder="Item title">
             <input id="price" placeholder="Price (e.g. ₱500)">
             <textarea id="desc" placeholder="Description..."></textarea>
-            <input type="file" id="imageFile" accept="image/*" onchange="window.previewImage()">
+            <input type="file" id="imageFile" accept="image/*">
             <div id="imagePreview" class="image-preview" style="display:none;"></div>
-            <button onclick="window.addPost()" id="postBtn">
+            <button id="postBtn">
                 <span>📤</span> Post Item
             </button>
         </div>
@@ -655,18 +794,24 @@ function home() {
         <div id="posts"></div>
     </div>
 
-    <button class="messenger" onclick="window.openInbox()">
+    <button id="messengerBtn" class="messenger">
         💬
         <span id="msgBadge" class="badge" style="display:none;">0</span>
     </button>
     `;
 
+    // Attach event listeners properly
+    document.getElementById("logoutBtn").addEventListener("click", window.logout);
+    document.getElementById("messengerBtn").addEventListener("click", openInbox);
+    document.getElementById("imageFile").addEventListener("change", previewImage);
+    document.getElementById("postBtn").addEventListener("click", addPost);
+
     loadPosts();
-    startInboxListener();
+    startBadgeListener();
 }
 
 /* ================= IMAGE PREVIEW ================= */
-window.previewImage = function() {
+function previewImage() {
     const file = document.getElementById("imageFile").files[0];
     const preview = document.getElementById("imagePreview");
     if (!file) {
@@ -680,10 +825,10 @@ window.previewImage = function() {
         preview.style.display = "block";
     };
     reader.readAsDataURL(file);
-};
+}
 
 /* ================= ADD POST ================= */
-window.addPost = async function() {
+async function addPost() {
     const btn = document.getElementById("postBtn");
     const originalText = btn.innerHTML;
     btn.innerHTML = `<span class="spinner"></span> Posting...`;
@@ -730,7 +875,7 @@ window.addPost = async function() {
         btn.innerHTML = originalText;
         btn.disabled = false;
     }
-};
+}
 
 /* ================= DELETE POST ================= */
 window.deletePost = async function(postId, uid) {
@@ -769,7 +914,7 @@ function loadPosts() {
             html += `
             <div class="post">
                 <div class="meta">
-                    <img src="${escapeHtml(p.authorPhoto || 'https://via.placeholder.com/28')}" alt="">
+                    <img src="${escapeHtml(p.authorPhoto || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default')}" alt="">
                     <span>${escapeHtml(p.authorName || 'User')}</span>
                     <span>·</span>
                     <span>${formatTime(p.createdAt)}</span>
@@ -805,36 +950,54 @@ window.openChat = function(otherUid) {
     }
 
     const me = auth.currentUser.uid;
-    const chatId = me < otherUid ? me + "_" + otherUid : otherUid + "_" + me;
+    const chatId = getChatId(me, otherUid);
 
     // Mark messages as read
     markChatRead(chatId, me);
 
+    if (unsubPosts) { unsubPosts(); unsubPosts = null; }
+    if (unsubBadge) { unsubBadge(); unsubBadge = null; }
+
     root.innerHTML = `
     <div class="main">
         <div class="card" style="display:flex;align-items:center;gap:10px;">
-            <button class="small secondary" onclick="window.home()">← Back</button>
+            <button id="backBtn" class="small secondary">← Back</button>
             <span style="font-weight:600;">Chat</span>
         </div>
 
         <div id="chatBox" class="chatBox"></div>
 
         <div class="chat-input-area">
-            <input id="msg" placeholder="Type a message..." onkeydown="if(event.key==='Enter')window.send('${chatId}')">
-            <button class="success" onclick="window.send('${chatId}')">Send</button>
+            <input id="msg" placeholder="Type a message...">
+            <button id="sendBtn" class="success">Send</button>
         </div>
     </div>`;
+
+    // Attach listeners
+    document.getElementById("backBtn").addEventListener("click", () => {
+        if (unsubChat) { unsubChat(); unsubChat = null; }
+        home();
+    });
+
+    document.getElementById("sendBtn").addEventListener("click", () => sendMessage(chatId));
+    document.getElementById("msg").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") sendMessage(chatId);
+    });
 
     loadChat(chatId, otherUid);
 };
 
 async function markChatRead(chatId, userId) {
-    const readRef = doc(db, "chats", chatId, "readStatus", userId);
-    await setDoc(readRef, { lastRead: serverTimestamp() }, { merge: true });
+    try {
+        const readRef = doc(db, "chats", chatId, "readStatus", userId);
+        await setDoc(readRef, { lastRead: serverTimestamp() }, { merge: true });
+    } catch (e) {
+        console.error("Mark read error:", e);
+    }
 }
 
 /* ================= SEND ================= */
-window.send = async function(chatId) {
+async function sendMessage(chatId) {
     const input = document.getElementById("msg");
     const msg = input.value.trim();
     if (!msg) return;
@@ -856,7 +1019,7 @@ window.send = async function(chatId) {
         input.disabled = false;
         input.focus();
     }
-};
+}
 
 /* ================= DELETE MESSAGE ================= */
 window.deleteMsg = async function(chatId, msgId) {
@@ -866,7 +1029,7 @@ window.deleteMsg = async function(chatId, msgId) {
 
 /* ================= LOAD CHAT ================= */
 function loadChat(chatId, otherUid) {
-    if (unsubChat) unsubChat();
+    if (unsubChat) { unsubChat(); unsubChat = null; }
 
     const q = query(collection(db, "chats", chatId, "messages"), orderBy("createdAt"));
 
@@ -898,18 +1061,25 @@ function loadChat(chatId, otherUid) {
 }
 
 /* ================= INBOX ================= */
-window.openInbox = function() {
+function openInbox() {
+    if (unsubPosts) { unsubPosts(); unsubPosts = null; }
+    if (unsubBadge) { unsubBadge(); unsubBadge = null; }
+
     root.innerHTML = `
     <div class="main">
         <div class="card" style="display:flex;align-items:center;gap:10px;">
-            <button class="small secondary" onclick="window.home()">← Back</button>
+            <button id="inboxBackBtn" class="small secondary">← Back</button>
             <h2 style="margin:0;">Inbox</h2>
         </div>
         <div id="inboxList"></div>
     </div>`;
 
+    document.getElementById("inboxBackBtn").addEventListener("click", () => {
+        home();
+    });
+
     loadInbox();
-};
+}
 
 /* ================= INBOX LOAD ================= */
 function loadInbox() {
@@ -926,7 +1096,8 @@ function loadInbox() {
             const chatId = d.id;
             if (!chatId.includes(me)) continue;
 
-            const otherUid = chatId.replace(me, "").replace("_", "");
+            const parts = chatId.split("_");
+            const otherUid = parts[0] === me ? parts[1] : parts[0];
 
             // Get last message
             const msgQuery = query(
@@ -948,7 +1119,7 @@ function loadInbox() {
                 } else {
                     const lastReadTime = lastRead.toDate ? lastRead.toDate() : new Date(lastRead);
                     unreadCount = msgSnap.docs.filter(doc => {
-                        const msgTime = doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date(doc.data().createdAt);
+                        const msgTime = doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date(doc.data().createdAt || 0);
                         return doc.data().sender !== me && msgTime > lastReadTime;
                     }).length;
                 }
@@ -989,11 +1160,11 @@ function loadInbox() {
         for (const c of chats) {
             const preview = c.lastMsg ? escapeHtml(c.lastMsg.text.substring(0, 40)) + (c.lastMsg.text.length > 40 ? "..." : "") : "No messages";
             const name = escapeHtml(c.otherUser.name || "User");
-            const photo = c.otherUser.photo || "https://via.placeholder.com/48";
+            const photo = c.otherUser.photo || "https://api.dicebear.com/7.x/avataaars/svg?seed=" + c.otherUid;
             const time = formatTime(c.lastTime);
 
             html += `
-            <div class="inboxItem" onclick="window.openChat('${c.otherUid}')">
+            <div class="inboxItem" data-uid="${c.otherUid}">
                 <img src="${photo}" alt="">
                 <div class="info">
                     <div class="name">${name}</div>
@@ -1005,24 +1176,34 @@ function loadInbox() {
         }
 
         list.innerHTML = html;
+
+        // Attach click handlers
+        document.querySelectorAll(".inboxItem").forEach(item => {
+            item.addEventListener("click", () => {
+                window.openChat(item.dataset.uid);
+            });
+        });
     });
 }
 
-/* ================= INBOX BADGE LISTENER ================= */
-function startInboxListener() {
-    if (unsubInbox) unsubInbox();
+/* ================= BADGE LISTENER ================= */
+function startBadgeListener() {
+    if (unsubBadge) { unsubBadge(); unsubBadge = null; }
 
     const me = auth.currentUser.uid;
+
+    // Listen to ALL messages across all chats where user is a participant
     const q = query(collection(db, "chats"));
 
-    unsubInbox = onSnapshot(q, async (snap) => {
+    unsubBadge = onSnapshot(q, async (snap) => {
         let totalUnread = 0;
 
         for (const d of snap.docs) {
             const chatId = d.id;
             if (!chatId.includes(me)) continue;
 
-            const otherUid = chatId.replace(me, "").replace("_", "");
+            const parts = chatId.split("_");
+            const otherUid = parts[0] === me ? parts[1] : parts[0];
 
             const msgQuery = query(
                 collection(db, "chats", chatId, "messages"),
@@ -1042,7 +1223,7 @@ function startInboxListener() {
             } else {
                 const lastReadTime = lastRead.toDate ? lastRead.toDate() : new Date(lastRead);
                 totalUnread += msgSnap.docs.filter(doc => {
-                    const msgTime = doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date(doc.data().createdAt);
+                    const msgTime = doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date(doc.data().createdAt || 0);
                     return doc.data().sender !== me && msgTime > lastReadTime;
                 }).length;
             }
@@ -1066,9 +1247,11 @@ onAuthStateChanged(auth, (user) => {
         initUser(user);
     } else {
         currentUserData = null;
-        if (unsubInbox) unsubInbox();
-        if (unsubPosts) unsubPosts();
-        if (unsubChat) unsubChat();
+        currentUserObj = null;
+        if (unsubInbox) { unsubInbox(); unsubInbox = null; }
+        if (unsubPosts) { unsubPosts(); unsubPosts = null; }
+        if (unsubChat) { unsubChat(); unsubChat = null; }
+        if (unsubBadge) { unsubBadge(); unsubBadge = null; }
         loginPage();
     }
 });

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trading Hub FINAL STEP 7 FIX</title>
+<title>Trading Hub FINAL FIX</title>
 
 <style>
 body{margin:0;font-family:Arial;background:#eef0f4;}
@@ -12,11 +12,9 @@ body{margin:0;font-family:Arial;background:#eef0f4;}
 input,textarea{width:100%;padding:10px;margin-top:5px;border-radius:8px;border:1px solid #ddd;}
 button{width:100%;padding:10px;margin-top:8px;background:#111;color:white;border:none;border-radius:8px;}
 
-/* POSTS */
 .post{background:white;padding:12px;border-radius:10px;margin:10px 0;}
 img{max-width:100%;border-radius:10px;margin-top:5px;}
 
-/* CHAT */
 .chatBox{height:60vh;overflow:auto;background:#f7f7f7;padding:10px;border-radius:10px;}
 
 .msgRow{display:flex;margin:6px 0;}
@@ -34,14 +32,12 @@ word-wrap:break-word;
 .mine{background:black;color:white;}
 .theirs{background:#ddd;}
 
-/* INBOX */
 .inboxItem{
 background:white;
 padding:12px;
 border-radius:10px;
 margin-bottom:10px;
 cursor:pointer;
-box-shadow:0 2px 6px rgba(0,0,0,0.08);
 }
 
 .messenger{
@@ -75,6 +71,7 @@ getFirestore,
 doc,
 getDoc,
 setDoc,
+deleteDoc,
 collection,
 addDoc,
 onSnapshot,
@@ -82,7 +79,6 @@ query,
 orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-/* FIREBASE */
 const firebaseConfig = {
 apiKey:"AIzaSyAi6LMeK1MwXBBaI4xSvTAjrYn6P0YSTHM",
 authDomain:"trading-web-6d548.firebaseapp.com",
@@ -111,7 +107,7 @@ root.innerHTML=`
 
 window.login=()=>signInWithPopup(auth,new GoogleAuthProvider());
 
-/* ================= USER INIT ================= */
+/* ================= USER ================= */
 async function initUser(user){
 const ref=doc(db,"users",user.uid);
 const snap=await getDoc(ref);
@@ -164,6 +160,17 @@ createdAt:Date.now()
 });
 };
 
+/* ================= DELETE POST ================= */
+window.deletePost=async function(postId,uid){
+
+if(auth.currentUser.uid!==uid){
+alert("Not allowed");
+return;
+}
+
+await deleteDoc(doc(db,"posts",postId));
+};
+
 /* ================= LOAD POSTS ================= */
 function loadPosts(){
 
@@ -182,7 +189,13 @@ html+=`
 <p>₱${p.price}</p>
 <p>${p.desc}</p>
 
-<button onclick="openChat('${p.uid}')">Message Seller</button>
+<button onclick="openChat('${p.uid}')">Message</button>
+
+${p.uid===auth.currentUser.uid?`
+<button style="background:red" onclick="deletePost('${d.id}','${p.uid}')">
+Delete
+</button>`:""}
+
 </div>`;
 });
 
@@ -216,7 +229,7 @@ root.innerHTML=`
 loadChat(chatId);
 };
 
-/* SEND */
+/* ================= SEND ================= */
 window.send=async function(chatId){
 
 const msg=document.getElementById("msg").value;
@@ -228,7 +241,16 @@ createdAt:Date.now()
 });
 };
 
-/* LOAD CHAT */
+/* ================= DELETE MESSAGE ================= */
+window.deleteMsg=async function(chatId,msgId){
+
+await deleteDoc(
+doc(db,"chats",chatId,"messages",msgId)
+);
+
+};
+
+/* ================= LOAD CHAT ================= */
 function loadChat(chatId){
 
 const q=query(collection(db,"chats",chatId,"messages"),orderBy("createdAt"));
@@ -243,9 +265,16 @@ const me=m.sender===auth.currentUser.uid;
 
 html+=`
 <div class="msgRow ${me?'me':'other'}">
+
 <div class="bubble ${me?'mine':'theirs'}">
 ${m.text}
 </div>
+
+${me?`
+<button onclick="deleteMsg('${chatId}','${d.id}')" style="font-size:10px;background:red;color:white;border:none;border-radius:5px;">
+del
+</button>`:""}
+
 </div>`;
 });
 
@@ -253,7 +282,7 @@ document.getElementById("chatBox").innerHTML=html;
 });
 }
 
-/* ================= INBOX (REAL FIXED) ================= */
+/* ================= INBOX ================= */
 window.openInbox=function(){
 
 const me=auth.currentUser.uid;
@@ -269,7 +298,7 @@ root.innerHTML=`
 loadInbox();
 };
 
-/* REAL INBOX */
+/* ================= INBOX LOAD ================= */
 function loadInbox(){
 
 const me=auth.currentUser.uid;
@@ -297,7 +326,7 @@ document.getElementById("inboxList").innerHTML=html;
 });
 }
 
-/* AUTH */
+/* ================= AUTH ================= */
 onAuthStateChanged(auth,(user)=>{
 if(user) initUser(user);
 else loginPage();
